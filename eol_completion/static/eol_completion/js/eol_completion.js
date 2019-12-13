@@ -1,15 +1,15 @@
 $(document).ready(function () {
-    var hd = $('.mainhead');
-    var p = $('.pto');
-    var aux11 = [0]
-    for (j = 0; j < p.length; j++) {
-        aux11.push(parseInt(p[j].id))
+    var main_header = $('.mainhead');
+    var columns_pto = $('.pto');
+    var array_index_column_pto = [0]
+    for (j = 0; j < columns_pto.length; j++) {
+        array_index_column_pto.push(parseInt(columns_pto[j].id))
     }
-    aux11.push(parseInt(p[p.length-1].id)+1)
-    for (j = 0; j < hd.length; j++) {
-        var ihd = hd[j].dataset.col_from
-        var jhd = hd[j].dataset.col_to
-        $('#botones')[0].innerHTML = $('#botones')[0].innerHTML + ' - <a class="toggle-vis novisto" value="' + ihd + ',' + jhd + '">' + hd[j].textContent + '</a>'
+    array_index_column_pto.push(parseInt(columns_pto[columns_pto.length-1].id)+1)
+    for (j = 0; j < main_header.length; j++) {
+        var aux_i = main_header[j].dataset.col_from
+        var aux_j = main_header[j].dataset.col_to
+        $('#botones')[0].innerHTML = $('#botones')[0].innerHTML + ' - <a class="toggle-vis novisto" value="' + aux_i + ',' + aux_j + '">' + main_header[j].textContent + '</a>'
     }
 
     var myTable = $('#mytable').DataTable({
@@ -20,7 +20,7 @@ $(document).ready(function () {
            'excelHtml5'
         ],
         columnDefs: [
-            { orderable: true, className: 'reorder', targets: aux11 },
+            { orderable: true, className: 'reorder', targets: array_index_column_pto },
             { orderable: false, targets: '_all' }
         ]
     });

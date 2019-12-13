@@ -28,17 +28,6 @@ from collections import OrderedDict
 FILTER_LIST = ['xml_attributes']
 INHERITED_FILTER_LIST = ['children', 'xml_attributes']
 
-"""
-def my_custom_function(request, course_id):
-    course_key = CourseKey.from_string(course_id)
-    course = get_course_with_access(request.user, "load", course_key)
-
-    context = {
-        "course": course,
-    }
-    return render_to_response("eol_completion/eol_completion_fragment.html", context)
-
-"""
 class EolCompletionFragmentView(EdxFragmentView):
     def render_to_fragment(self, request, course_id, **kwargs):
         
@@ -61,14 +50,14 @@ class EolCompletionFragmentView(EdxFragmentView):
         curso_aux=course_id.split(":", 1)
         id_curso = 'block-v1:'+curso_aux[1]+'+type@course+block@course'        
         materia = self.get_materia(info,id_curso)#diccionario de las secciones,subsecciones y unidades ordenados
-        user_tick, max_u = self.get_ticks(materia, info, enrolled_students, course_key)#diccionario los estudiantes con true/false si completaron las unidades + ptos
+        user_tick, max_unit = self.get_ticks(materia, info, enrolled_students, course_key)#diccionario los estudiantes con true/false si completaron las unidades + ptos
 
         context = {
             "course": course,
             "lista_alumnos": enrolled_students,
             "lista_tick": user_tick,
             "materia": materia,
-            "max": max_u,
+            "max": max_unit,
             #"a_tick": arreglo_tick
         }
         return context
@@ -82,72 +71,72 @@ class EolCompletionFragmentView(EdxFragmentView):
             seccion = info[id_seccion]
             hijos=0
             subsecciones = seccion['children']
-            aux=OrderedDict()
+            aux_subsec_dict=OrderedDict()
             for id_subseccion in subsecciones:#recorre cada subseccion
                 subseccion = info[id_subseccion]
                 unidades = subseccion['children']
                 aux_name = subseccion['metadata']
                 hijos += len(unidades)
-                aux22=OrderedDict()
+                unit_dict=OrderedDict()
                 for id_uni in unidades: # recorre cada unidad y obtiene el nombre de esta
                     unidad = info[id_uni]
-                    uni_name = unidad['metadata']['display_name']
-                    aux22[id_uni] = {'name_uni': uni_name, 'id': id_uni }
-                aux[id_subseccion] = {'name_sub': aux_name['display_name'], 'children_sub': aux22, 'id':id_subseccion, 'total_hijos': len(unidades)}
+                    unit_name = unidad['metadata']['display_name']
+                    unit_dict[id_uni] = {'name_uni': unit_name, 'id': id_uni }
+                aux_subsec_dict[id_subseccion] = {'name_sub': aux_name['display_name'], 'children_sub': unit_dict, 'id':id_subseccion, 'total_hijos': len(unidades)}
 
-            aux_name2 = seccion['metadata']
-            materia[id_seccion] = {'name_seccion': aux_name2['display_name'], 'children_seccion': aux, 'id':id_seccion, 'total_hijos': hijos}
+            aux_name_sec = seccion['metadata']
+            materia[id_seccion] = {'name_seccion': aux_name_sec['display_name'], 'children_seccion': aux_subsec_dict, 'id':id_seccion, 'total_hijos': hijos}
         return materia
 
     def get_ticks(self, materia, info, enrolled_students, course_key):
         user_tick = OrderedDict()
-        max_u = 0   # numero de unidades en todas las secciones    
+        max_unit = 0   # numero de unidades en todas las secciones    
         contar = True
         #arreglo_tick = [] // en vez de usar diccionario para almacenar los true/false si los estudiantes completaron las unidades
-        k=0
+        #k=0
         for user in enrolled_students: #recorre cada estudiante
             blocks = BlockCompletion.objects.filter(user=user['id'], course_key=course_key)
-            uaux3=OrderedDict()
-            com_u = 0 #numero de unidades completadas por estudiante
+            section_dict=OrderedDict()
+            completed_unit = 0 #numero de unidades completadas por estudiante
             
             #arreglo_tick.append([])
             #arreglo_tick.append(user['username'])
-            for u_sec in materia: #recorre cada seccion                
-                aux2 = materia[u_sec]['children_seccion']
-                uaux= OrderedDict()
-                psec=0#numero de unidades completadas por seccion
-                maxsec=0#numero de unidades por seccion
+            for section in materia: #recorre cada seccion                
+                aux_section = materia[section]['children_seccion']
+                subsection_dict= OrderedDict()
+                completed_unit_per_section=0#numero de unidades completadas por seccion
+                num_units_section=0#numero de unidades por seccion
                 #recorre cada subseccion
-                for u_sub in aux2.items(): #list(my_dict.items())[0]  in python 3.x 
-                    aux3 = u_sub[1]['children_sub']
-                    uaux2=OrderedDict()
-                    for u_uni in aux3:#recorre cada unidad
-                        aux4 = info[u_uni]
-                        u_block = aux4['children'] #bloques de la unidad
-                        bul = True 
+                for aux_subsection in aux_section.items(): #list(my_dict.items())[0]  in python 3.x 
+                    list_subsection = aux_subsection[1]['children_sub']
+                    dict_unit=OrderedDict()
+                    for id_unit in list_subsection:#recorre cada unidad
+                        unit_info = info[id_unit]
+                        blocks_unit = unit_info['children'] #bloques de la unidad
+                        verificador = True 
                         if contar:
-                            max_u += 1
-                        psec += 1
-                        maxsec += 1
-                        com_u += 1                      
-                        for bloque in u_block: #recorre cada bloque 
+                            max_unit += 1
+                        completed_unit_per_section += 1
+                        num_units_section += 1
+                        completed_unit += 1                      
+                        for bloque in blocks_unit: #recorre cada bloque 
                             usage_key = UsageKey.from_string(bloque)
-                            aux5 = blocks.filter(block_key=usage_key).values('completion')                            
-                            if aux5.count() == 0 or aux5[0] == 0.0: #si el bloque no ha sido visto o no ha sido completado                               
-                                bul=False
-                        if not bul:
-                            com_u -= 1
-                            psec -= 1
-                        uaux2[u_uni] = [u_uni, bul, aux4['metadata']['display_name']]
-                        #arreglo_tick[k].append(bul)
-                    uaux[u_sub[0]] = {'subseccion':u_sub[0], 'unidades': uaux2}
-                #arreglo_tick[k].append(psec+"/"+maxsec)
-                uaux3[u_sec] = {'seccion': u_sec, 'subs':uaux, 'ptos': psec, 'max': maxsec}
-            user_tick[user['id']] = {'user': user['id'], 'sec':uaux3, 'ptos': com_u}
+                            aux_block = blocks.filter(block_key=usage_key).values('completion')                            
+                            if aux_block.count() == 0 or aux_block[0] == 0.0: #si el bloque no ha sido visto o no ha sido completado                               
+                                verificador=False
+                        if not verificador:
+                            completed_unit -= 1
+                            completed_unit_per_section -= 1
+                        dict_unit[id_unit] = [id_unit, verificador, unit_info['metadata']['display_name']]
+                        #arreglo_tick[k].append(verificador)
+                    subsection_dict[aux_subsection[0]] = {'subseccion':aux_subsection[0], 'unidades': dict_unit}
+                #arreglo_tick[k].append(completed_unit_per_section+"/"+num_units_section)
+                section_dict[section] = {'seccion': section, 'subs':subsection_dict, 'ptos': completed_unit_per_section, 'max': num_units_section}
+            user_tick[user['id']] = {'user': user['id'], 'sec':section_dict, 'ptos': completed_unit}
             contar = False
-            #arreglo_tick[k].append(com_u+"/"+max_u)
-            k += 1
-        return user_tick, max_u
+            #arreglo_tick[k].append(completed_unit+"/"+max_unit)
+            #k += 1
+        return user_tick, max_unit
 
     def dump_module(self, module, destination=None, inherited=False, defaults=False):
         """
