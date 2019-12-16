@@ -14,17 +14,17 @@ class EolCompletionConfig(AppConfig):
                 PluginURLs.NAMESPACE: u'',
                 PluginURLs.REGEX: r'^',
                 PluginURLs.RELATIVE_PATH: u'urls',
-            }
-        },
+            }},
         PluginSettings.CONFIG: {
             ProjectType.CMS: {
-                SettingsType.COMMON: {PluginSettings.RELATIVE_PATH: u'settings.common'},
+                SettingsType.COMMON: {
+                    PluginSettings.RELATIVE_PATH: u'settings.common'},
             },
             ProjectType.LMS: {
-                SettingsType.COMMON: {PluginSettings.RELATIVE_PATH: u'settings.common'},
+                SettingsType.COMMON: {
+                    PluginSettings.RELATIVE_PATH: u'settings.common'},
             },
-        }
-    }
+        }}
 
     def ready(self):
         pass

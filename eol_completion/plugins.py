@@ -5,9 +5,10 @@ from courseware.tabs import EnrolledTab
 import django_comment_client.utils as utils
 from xmodule.tabs import TabFragmentViewMixin
 
+
 class EolCompletionTab(TabFragmentViewMixin, EnrolledTab):
     type = 'eol_completion'
-    title = ugettext_noop('Completion')
+    title = ugettext_noop('Seguimiento')
     priority = None
     view_name = 'completion_view'
     fragment_view_name = 'eol_completion.views.EolCompletionFragmentView'

@@ -7,11 +7,11 @@ from .views import EolCompletionFragmentView
 
 
 urlpatterns = (
-       url(
-           r'courses/{}/student_completion$'.format(
-               settings.COURSE_ID_PATTERN,
-           ),
-           EolCompletionFragmentView.as_view(),
-           name='completion_view',
-       ),
-   )
+    url(
+        r'courses2/{}/student_completion/$'.format(
+            settings.COURSE_ID_PATTERN,
+        ),
+        EolCompletionFragmentView.as_view(),
+        name='completion_view',
+    ),
+)
