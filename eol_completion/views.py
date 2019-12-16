@@ -11,7 +11,7 @@ from django.shortcuts import render_to_response
 from web_fragments.fragment import Fragment
 
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
-
+from lms.djangoapps.certificates.models import GeneratedCertificate
 from xblock.fields import Scope
 from opaque_keys.edx.keys import CourseKey, UsageKey
 from opaque_keys import InvalidKeyError
@@ -112,6 +112,8 @@ class EolCompletionFragmentView(EdxFragmentView):
         user_tick = OrderedDict()
 
         for user in enrolled_students:  # recorre cada estudiante
+            certificado = self.get_certificate(user['id'],course_key)
+
             blocks = BlockCompletion.objects.filter(
                 user=user['id'], course_key=course_key)
             #-------------------------------
@@ -119,7 +121,7 @@ class EolCompletionFragmentView(EdxFragmentView):
                 materia, info, blocks)
             #-------------------------------
             user_tick[user['id']] = {'user': user['id'],
-                                     'sec': section_dict, 'ptos': completed_unit}
+                                     'sec': section_dict, 'ptos': completed_unit, 'certificado': certificado}
         return user_tick
 
     # recorre las secciones del curso
@@ -186,6 +188,13 @@ class EolCompletionFragmentView(EdxFragmentView):
                 verificador = False
         return verificador
 
+    # verifica si el usuario tiene generado un certificado
+    def get_certificate(self, user_id, course_id):
+        certificado = GeneratedCertificate.certificate_for_student(user_id, course_id)
+        if certificado is None:
+            return 'No'
+        return 'Si'
+        
     # retorna un diccionario con todos los bloques del curso
     def dump_module(
             self,
