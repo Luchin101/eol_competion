@@ -16,10 +16,12 @@ $(document).ready(function () {
     var myTable = $('#mytable').DataTable({
         "sScrollX": '100%',
         rowReorder: true,
-        dom: 'Bfrtip',
+        "sDom": "B<'row'>lfrtip",        
         buttons: [
            'excelHtml5'
         ],
+        "pageLength": 50,
+        lengthMenu: [50, 100, 150, 200],
         columnDefs: [
             { "type": 'natural', orderable: true, className: 'reorder', targets: array_index_column_pto },
             { orderable: true, className: 'reorder', targets: [1] },
