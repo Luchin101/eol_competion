@@ -9,7 +9,7 @@ from courseware.courses import get_course_with_access
 from django.template.loader import render_to_string
 from django.shortcuts import render_to_response
 from web_fragments.fragment import Fragment
-
+from django.core.cache import cache
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
 from lms.djangoapps.certificates.models import GeneratedCertificate
 from xblock.fields import Scope
@@ -33,13 +33,12 @@ class EolCompletionFragmentView(EdxFragmentView):
     def render_to_fragment(self, request, course_id, **kwargs):
 
         context = self.get_context(request, course_id)
-
         html = render_to_string(
             'eol_completion/eol_completion_fragment.html', context)
         fragment = Fragment(html)
         return fragment
 
-    def get_context(self, request, course_id):
+    def get_context(self, request, course_id):        
         course_key = CourseKey.from_string(course_id)
         course = get_course_with_access(request.user, "load", course_key)
         enrolled_students = User.objects.filter(
@@ -54,22 +53,30 @@ class EolCompletionFragmentView(EdxFragmentView):
         id_curso = 'block-v1:' + curso_aux[1] + '+type@course+block@course'
         # diccionario de las secciones,subsecciones y unidades ordenados + max
         # de unidades
-        materia, max_unit = self.get_materia(info, id_curso)
+        materia = cache.get(course_id+"-materia")
+        max_unit =  cache.get(course_id+"-max_unit")
+        if materia is None and max_unit is None: 
+            materia, max_unit = self.get_materia(info, id_curso)
+            cache.set(course_id+"-materia", materia, 300)
+            cache.set(course_id+"-max_unit", max_unit, 300)
         # diccionario de los estudiantes con true/false si completaron las
         # unidades
-        user_tick = self.get_ticks(
-            materia, info, enrolled_students, course_key, max_unit)
-
+        user_tick = cache.get(course_id+"-user_tick")
+        if user_tick is None:            
+            user_tick = self.get_ticks(
+                materia, info, enrolled_students, course_key, max_unit)
+            cache.set(course_id+"-user_tick", user_tick, 300)
         context = {
             "course": course,
             "lista_tick": user_tick,
             "materia": materia,
             "max": max_unit
         }
+        
         return context
-    # retorna diccionario de las secciones,subsecciones y unidades ordenados
 
     def get_materia(self, info, id_curso):
+        # retorna diccionario de las secciones,subsecciones y unidades ordenados
         max_unit = 0   # numero de unidades en todas las secciones
         materia = OrderedDict()
         curso_hijos = info[id_curso]
@@ -110,8 +117,6 @@ class EolCompletionFragmentView(EdxFragmentView):
 
         return materia, max_unit
 
-    # diccionario los estudiantes con true/false si completaron las
-    # unidades
     def get_ticks(
             self,
             materia,
@@ -119,6 +124,8 @@ class EolCompletionFragmentView(EdxFragmentView):
             enrolled_students,
             course_key,
             max_unit):
+        # diccionario los estudiantes con true/false si completaron las
+        # unidades
         user_tick = OrderedDict()
 
         for user in enrolled_students:  # recorre cada estudiante
@@ -137,9 +144,9 @@ class EolCompletionFragmentView(EdxFragmentView):
                                      'data': data}
         return user_tick
 
-    # obtiene una lista con true/false si completaron las unidades mas el
-    # numero de unidades completadas
     def get_data_tick(self, materia, info, user, blocks, max_unit):
+        # obtiene una lista con true/false si completaron las unidades mas el
+        # numero de unidades completadas
         data = []
         completed_unit = 0  # numero de unidades completadas por estudiante
         completed_unit_per_section = 0  # numero de unidades completadas por seccion
@@ -174,8 +181,8 @@ class EolCompletionFragmentView(EdxFragmentView):
         data.append(aux_final_point)
         return data
 
-    # verifica si el bloque de la unidad fue completado
     def get_block_tick(sefl, blocks_unit, blocks):
+        # verifica si el bloque de la unidad fue completado
         verificador = True
         i = 0
         while verificador and i < len(blocks_unit):  # recorre cada bloque
@@ -192,22 +199,22 @@ class EolCompletionFragmentView(EdxFragmentView):
                     verificador = False
             i += 1
         return verificador
-
-    # verifica si el usuario tiene generado un certificado
+    
     def get_certificate(self, user_id, course_id):
+        # verifica si el usuario tiene generado un certificado
         certificado = GeneratedCertificate.certificate_for_student(
             user_id, course_id)
         if certificado is None:
             return 'No'
         return 'Si'
-
-    # retorna un diccionario con todos los bloques del curso
+    
     def dump_module(
             self,
             module,
             destination=None,
             inherited=False,
             defaults=False):
+        # retorna un diccionario con todos los bloques del curso
         """
         Add the module and all its children to the destination dictionary in
         as a flat structure.
