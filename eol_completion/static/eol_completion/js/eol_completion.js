@@ -14,7 +14,7 @@ $(document).ready(function () {
     }
 
     var myTable = $('#mytable').DataTable({
-        "sScrollX": '100%',
+        scrollX: true,
         rowReorder: true,
         "sDom": "B<'row'>lfrtip",        
         buttons: [
@@ -22,6 +22,9 @@ $(document).ready(function () {
         ],
         "pageLength": 50,
         lengthMenu: [50, 100, 150, 200],
+        fixedColumns:   {
+            leftColumns: 2            
+        },
         columnDefs: [
             { "type": 'natural', orderable: true, className: 'reorder', targets: array_index_column_pto },
             { orderable: true, className: 'reorder', targets: [1] },
@@ -69,6 +72,4 @@ $(document).ready(function () {
             $(this).addClass('visto')
         }
     });
-    
-
 });
