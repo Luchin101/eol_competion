@@ -52,38 +52,35 @@ class EolCompletionFragmentView(EdxFragmentView):
 
         curso_aux = course_id.split(":", 1)
         id_curso = 'block-v1:' + curso_aux[1] + '+type@course+block@course'
-        """
-            diccionario de las secciones,subsecciones y unidades ordenados + max
-             de unidades
-        """
-        materia = cache.get("eol_completion-"+course_id+"-materia")
-        max_unit =  cache.get("eol_completion-"+course_id+"-max_unit")
-        if materia is None and max_unit is None: 
+
+        data = cache.get("eol_completion-"+course_id+"-data")
+        
+            
+        if data is None: 
+            data =[]
             materia, max_unit = self.get_materia(info, id_curso)
-            cache.set("eol_completion-"+course_id+"-materia", materia, 300)
-            cache.set("eol_completion-"+course_id+"-max_unit", max_unit, 300)
-        """ 
-            diccionario de los estudiantes con true/false si completaron las
-            unidades
-        """
-        user_tick = cache.get("eol_completion-"+course_id+"-user_tick")
-        if user_tick is None:            
             user_tick = self.get_ticks(
                 materia, info, enrolled_students, course_key, max_unit)
             cache.set("eol_completion-"+course_id+"-user_tick", user_tick, 300)
-
-        time = cache.get("eol_completion-"+course_id+"-time")
-        if time is None:            
             time = datetime.now()
-            time = time.strftime("%m/%d/%Y, %H:%M:%S")
-            cache.set("eol_completion-"+course_id+"-time", time, 300)
+            time = time.strftime("%d/%m/%Y, %H:%M:%S")
+            data.extend([user_tick,materia,max_unit,time])           
+            cache.set("eol_completion-"+course_id+"-data", data, 300)
+            context = {
+                "course": course,
+                "lista_tick": user_tick,
+                "materia": materia,
+                "max": max_unit,
+                "time": time
+            }
+            return context
 
         context = {
             "course": course,
-            "lista_tick": user_tick,
-            "materia": materia,
-            "max": max_unit,
-            "time": time
+            "lista_tick": data[0],
+            "materia": data[1],
+            "max": data[2],
+            "time": data[3]
         }
         
         return context
