@@ -21,4 +21,7 @@ class EolCompletionTab(TabFragmentViewMixin, EnrolledTab):
 
     @classmethod
     def is_enabled(cls, course, user=None):
-        return True
+        """
+        Returns true if the specified user has staff access.
+        """
+        return bool(user and has_access(user, 'staff', course, course.id))
