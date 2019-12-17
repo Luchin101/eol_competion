@@ -16,6 +16,8 @@ class EolCompletionTab(TabFragmentViewMixin, EnrolledTab):
     is_default = True
     body_class = 'eol_completion'
     online_help_token = 'eol_completion'
+     # True if this tab should be displayed only for instructors
+    course_staff_only = False
 
     @classmethod
     def is_enabled(cls, course, user=None):
