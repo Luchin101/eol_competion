@@ -1,11 +1,12 @@
 $(document).ready(function () {
     var main_header = $('.mainhead');
     var columns_pto = $('.pto');
-    var array_index_column_pto = [0]
+    var array_index_column_pto = [1]
     for (j = 0; j < columns_pto.length; j++) {
         array_index_column_pto.push(parseInt(columns_pto[j].id))
     }
     array_index_column_pto.push(parseInt(columns_pto[columns_pto.length-1].id)+1)
+    array_index_column_pto.push(parseInt(columns_pto[columns_pto.length-1].id)+2)
     for (j = 0; j < main_header.length; j++) {
         var aux_i = main_header[j].dataset.col_from
         var aux_j = main_header[j].dataset.col_to
@@ -20,7 +21,7 @@ $(document).ready(function () {
            'excelHtml5'
         ],
         columnDefs: [
-            { orderable: true, className: 'reorder', targets: array_index_column_pto },
+            { "type": 'natural', orderable: true, className: 'reorder', targets: array_index_column_pto },
             { orderable: false, targets: '_all' }
         ],
         language: {
