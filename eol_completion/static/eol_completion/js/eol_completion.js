@@ -1,7 +1,7 @@
 $(document).ready(function () {
     var main_header = $('.mainhead');
     var columns_pto = $('.pto');
-    var array_index_column_pto = [1]
+    var array_index_column_pto = []
     for (j = 0; j < columns_pto.length; j++) {
         array_index_column_pto.push(parseInt(columns_pto[j].id))
     }
@@ -22,6 +22,7 @@ $(document).ready(function () {
         ],
         columnDefs: [
             { "type": 'natural', orderable: true, className: 'reorder', targets: array_index_column_pto },
+            { orderable: true, className: 'reorder', targets: [1] },
             { orderable: false, targets: '_all' }
         ],
         language: {
