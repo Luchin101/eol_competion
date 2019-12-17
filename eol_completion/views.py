@@ -53,15 +53,13 @@ class EolCompletionFragmentView(EdxFragmentView):
         curso_aux = course_id.split(":", 1)
         id_curso = 'block-v1:' + curso_aux[1] + '+type@course+block@course'
 
-        data = cache.get("eol_completion-"+course_id+"-data")
-        
+        data = cache.get("eol_completion-"+course_id+"-data")        
             
         if data is None: 
             data =[]
             materia, max_unit = self.get_materia(info, id_curso)
             user_tick = self.get_ticks(
-                materia, info, enrolled_students, course_key, max_unit)
-            cache.set("eol_completion-"+course_id+"-user_tick", user_tick, 300)
+                materia, info, enrolled_students, course_key, max_unit)            
             time = datetime.now()
             time = time.strftime("%d/%m/%Y, %H:%M:%S")
             data.extend([user_tick,materia,max_unit,time])           
