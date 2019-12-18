@@ -39,154 +39,145 @@ class EolCompletionFragmentView(EdxFragmentView):
         fragment = Fragment(html)
         return fragment
 
-    def get_context(self, request, course_id):        
+    def get_context(self, request, course_id):
         course_key = CourseKey.from_string(course_id)
         course = get_course_with_access(request.user, "load", course_key)
-        enrolled_students = User.objects.filter(
-            courseenrollment__course_id=course_key,
-            courseenrollment__is_active=1
-        ).order_by('username').values('id', 'username', 'email')
-        store = modulestore()
-        # diccionario con todos los bloques del curso
-        info = self.dump_module(store.get_course(course_key))
 
-        curso_aux = course_id.split(":", 1)
-        id_curso = 'block-v1:' + curso_aux[1] + '+type@course+block@course'
+        data = cache.get("eol_completion-" + course_id + "-data")
+        if data is None:
+            enrolled_students = User.objects.filter(
+                courseenrollment__course_id=course_key,
+                courseenrollment__is_active=1
+            ).order_by('username').values('id', 'username', 'email')
+            store = modulestore()
+            # Dictionary with all course blocks
+            info = self.dump_module(store.get_course(course_key))
+            course_aux = course_id.split(":", 1)
+            id_course = 'block-v1:' + \
+                course_aux[1] + '+type@course+block@course'
 
-        data = cache.get("eol_completion-"+course_id+"-data")        
-            
-        if data is None: 
-            data =[]
-            materia, max_unit = self.get_materia(info, id_curso)
+            data = []
+            content, max_unit = self.get_content(info, id_course)
             user_tick = self.get_ticks(
-                materia, info, enrolled_students, course_key, max_unit)            
+                content, info, enrolled_students, course_key, max_unit)
             time = datetime.now()
             time = time.strftime("%d/%m/%Y, %H:%M:%S")
-            data.extend([user_tick,materia,max_unit,time])           
-            cache.set("eol_completion-"+course_id+"-data", data, 300)
-            context = {
-                "course": course,
-                "lista_tick": user_tick,
-                "materia": materia,
-                "max": max_unit,
-                "time": time
-            }
-            return context
+            data.extend([user_tick, content, max_unit, time])
+            cache.set("eol_completion-" + course_id + "-data", data, 300)
 
         context = {
             "course": course,
             "lista_tick": data[0],
-            "materia": data[1],
+            "content": data[1],
             "max": data[2],
             "time": data[3]
         }
-        
+
         return context
 
-    def get_materia(self, info, id_curso):
+    def get_content(self, info, id_course):
         """
-            retorna diccionario de las secciones,subsecciones y unidades ordenados
+            Returns dictionary of ordered sections, subsections and units
         """
-        max_unit = 0   # numero de unidades en todas las secciones
-        materia = OrderedDict()
-        curso_hijos = info[id_curso]
-        curso_hijos = curso_hijos['children']  # todas las secciones del curso
-        hijos = 0  # numero de unidades por seccion
-        for id_seccion in curso_hijos:  # recorre cada seccion
-            seccion = info[id_seccion]
-            aux_name_sec = seccion['metadata']
-            hijos = 0
-            materia[id_seccion] = {
-                'tipo': 'seccion',
-                'nombre': aux_name_sec['display_name'],
-                'id': id_seccion,
-                'nhijos': hijos}
-            subsecciones = seccion['children']
-            for id_subseccion in subsecciones:  # recorre cada subseccion
-                subseccion = info[id_subseccion]
-                unidades = subseccion['children']
-                aux_name = subseccion['metadata']
-                hijos += len(unidades)
-                materia[id_subseccion] = {
-                    'tipo': 'subseccion',
-                    'nombre': aux_name['display_name'],
-                    'id': id_subseccion,
-                    'nhijos': len(unidades)}
-                for id_uni in unidades:  # recorre cada unidad y obtiene el nombre de esta
+        max_unit = 0   # Number of units in all sections
+        content = OrderedDict()
+        children_course = info[id_course]
+        children_course = children_course['children']  # All course sections
+        children = 0  # Number of units per section
+        for id_section in children_course:  # Iterate each section
+            section = info[id_section]
+            aux_name_sec = section['metadata']
+            children = 0
+            content[id_section] = {
+                'type': 'section',
+                'name': aux_name_sec['display_name'],
+                'id': id_section,
+                'num_children': children}
+            subsections = section['children']
+            for id_subsection in subsections:  # Iterate each subsection
+                subsection = info[id_subsection]
+                units = subsection['children']
+                aux_name = subsection['metadata']
+                children += len(units)
+                content[id_subsection] = {
+                    'type': 'subsection',
+                    'name': aux_name['display_name'],
+                    'id': id_subsection,
+                    'num_children': len(units)}
+                for id_uni in units:  # Iterate each unit and get unit name
                     max_unit += 1
-                    unidad = info[id_uni]
-                    materia[id_uni] = {
-                        'tipo': 'unidad',
-                        'nombre': unidad['metadata']['display_name'],
+                    unit = info[id_uni]
+                    content[id_uni] = {
+                        'type': 'unit',
+                        'name': unit['metadata']['display_name'],
                         'id': id_uni}
-            materia[id_seccion] = {
-                'tipo': 'seccion',
-                'nombre': aux_name_sec['display_name'],
-                'id': id_seccion,
-                'nhijos': hijos}
+            content[id_section] = {
+                'type': 'section',
+                'name': aux_name_sec['display_name'],
+                'id': id_section,
+                'num_children': children}
 
-        return materia, max_unit
+        return content, max_unit
 
     def get_ticks(
             self,
-            materia,
+            content,
             info,
             enrolled_students,
             course_key,
             max_unit):
         """
-            diccionario los estudiantes con true/false si completaron las
-            unidades
+            Dictionary of students with true/false if students completed the units
         """
         user_tick = OrderedDict()
 
-        for user in enrolled_students:  # recorre cada estudiante
-            certificado = self.get_certificate(user['id'], course_key)
+        for user in enrolled_students:  # Iterate each student
+            certificate = self.get_certificate(user['id'], course_key)
 
             blocks = BlockCompletion.objects.filter(
                 user=user['id'], course_key=course_key)
-            # obtiene una lista con true/false si completaron las
-            # unidades mas el numero de unidades completadas
-            data = self.get_data_tick(materia, info, user, blocks, max_unit)
+            # Get a list of true/false if they completed the units
+            # and number of completed units
+            data = self.get_data_tick(content, info, user, blocks, max_unit)
 
             user_tick[user['id']] = {'user': user['id'],
                                      'username': user['username'],
                                      'email': user['email'],
-                                     'certificado': certificado,
+                                     'certificate': certificate,
                                      'data': data}
         return user_tick
 
-    def get_data_tick(self, materia, info, user, blocks, max_unit):
+    def get_data_tick(self, content, info, user, blocks, max_unit):
         """
-            obtiene una lista con true/false si completaron las unidades mas el
-            numero de unidades completadas
+            Get a list of true/false if they completed the units
+            and number of completed units
         """
         data = []
-        completed_unit = 0  # numero de unidades completadas por estudiante
-        completed_unit_per_section = 0  # numero de unidades completadas por seccion
-        num_units_section = 0  # numero de unidades por seccion
+        completed_unit = 0  # Number of completed units per student
+        completed_unit_per_section = 0  # Number of completed units per section
+        num_units_section = 0  # Number of units per section
         first = True
-        for unit in materia.items():
-            if unit[1]['tipo'] == 'unidad':
+        for unit in content.items():
+            if unit[1]['type'] == 'unit':
                 unit_info = info[unit[1]['id']]
-                # bloques de la unidad
+                # Unit Block
                 blocks_unit = unit_info['children']
-                verificador = self.get_block_tick(blocks_unit, blocks)
+                checker = self.get_block_tick(blocks_unit, blocks)
                 completed_unit_per_section += 1
                 num_units_section += 1
                 completed_unit += 1
-                data.append(verificador)
-                if not verificador:
+                data.append(checker)
+                if not checker:
                     completed_unit -= 1
                     completed_unit_per_section -= 1
 
-            if not first and unit[1]['tipo'] == 'seccion' and unit[1]['nhijos'] > 0:
+            if not first and unit[1]['type'] == 'section' and unit[1]['num_children'] > 0:
                 aux_point = str(completed_unit_per_section) + \
                     "/" + str(num_units_section)
                 data.append(aux_point)
                 completed_unit_per_section = 0
                 num_units_section = 0
-            if first and unit[1]['tipo'] == 'seccion' and unit[1]['nhijos'] > 0:
+            if first and unit[1]['type'] == 'section' and unit[1]['num_children'] > 0:
                 first = False
         aux_point = str(completed_unit_per_section) + \
             "/" + str(num_units_section)
@@ -197,41 +188,41 @@ class EolCompletionFragmentView(EdxFragmentView):
 
     def get_block_tick(sefl, blocks_unit, blocks):
         """
-            verifica si el bloque de la unidad fue completado
+            Check if unit block is completed
         """
-        verificador = True
+        checker = True
         i = 0
-        while verificador and i < len(blocks_unit):  # recorre cada bloque
-            bloque = blocks_unit[i]
-            dicussion_block = bloque.split('@')
-            # entra solo si el bloque no es discusion
+        while checker and i < len(blocks_unit):
+            # Iterate each block
+            block = blocks_unit[i]
+            dicussion_block = block.split('@')
             if dicussion_block[1] != 'discussion+block':
-                usage_key = UsageKey.from_string(bloque)
+                usage_key = UsageKey.from_string(block)
                 aux_block = blocks.filter(
                     block_key=usage_key).values('completion')
-                # si el bloque no ha sido visto o no ha sido
-                # completado
+
                 if aux_block.count() == 0 or aux_block[0] == 0.0:
-                    verificador = False
+                    # If block hasnt been seen or completed
+                    checker = False
             i += 1
-        return verificador
-    
+        return checker
+
     def get_certificate(self, user_id, course_id):
         """
-            verifica si el usuario tiene generado un certificado
+            Check if user has generated a certificate
         """
-        certificado = GeneratedCertificate.certificate_for_student(
+        certificate = GeneratedCertificate.certificate_for_student(
             user_id, course_id)
-        if certificado is None:
+        if certificate is None:
             return 'No'
         return 'Si'
-    
+
     def dump_module(
             self,
             module,
             destination=None,
             inherited=False,
-            defaults=False):        
+            defaults=False):
         """
         Add the module and all its children to the destination dictionary in
         as a flat structure.

@@ -85,85 +85,85 @@
 				    </div>
                     <table id="mytable" class="stripe row-border order-column cell-border no-footer" style="width:100%;table-layout:auto; text-align: center;">
                         <thead>
-                            <!--Agrega las cabeceras principales-->
+                            <!--Main Header-->
                             <tr>
                                 <th hidden rowspan="3" data-col_from="0" data-col_to="0">Correo</th>
                                 <th rowspan="3" data-col_from="1" data-col_to="1">Estudiante</th>
                                 <% col_len = 2 %>
-                                %for section in materia.items():
-                                    %if section[1]['tipo'] == 'seccion' and section[1]['nhijos'] > 0:
-                                        <th class="mainhead" colspan="${section[1]['nhijos']+1}" data-col_from="${col_len}" data-col_to="${col_len+section[1]['nhijos']}">${section[1]['nombre']}</th>
-                                        <% col_len = col_len + section[1]['nhijos'] +1 %>
+                                %for section in content.items():
+                                    %if section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                        <th class="mainhead" colspan="${section[1]['num_children']+1}" data-col_from="${col_len}" data-col_to="${col_len+section[1]['num_children']}">${section[1]['name']}</th>
+                                        <% col_len = col_len + section[1]['num_children'] +1 %>
                                     %endif
                                 %endfor
                                 <th rowspan="3" data-col_from="${col_len}" data-col_to="${col_len}">Total</th>
                                 <th rowspan="3" data-col_from="${col_len+1}" data-col_to="${col_len+1}">Certificado Generado</th>
                             </tr>
-                             <!--Agrega las cabeceras secundarias-->
+                             <!--Secondary Header-->
                             <tr>
                                 <% i = 1 %>
                                 <% j = 1 %> 
-                                <% pto_position = 1 %>
+                                <% point_position = 1 %>
                                 <% first = True %>
                                 <% last = {} %>
-                                %for section in materia.items():                                                                   
-                                    %if section[1]['tipo'] == 'subseccion' and section[1]['nhijos'] > 0:                                        
-                                        <td colspan="${section[1]['nhijos']}" title="${section[1]['nombre']}"> ${i}.${j} </td>                                       
+                                %for section in content.items():                                                                   
+                                    %if section[1]['type'] == 'subsection' and section[1]['num_children'] > 0:                                        
+                                        <td colspan="${section[1]['num_children']}" title="${section[1]['name']}"> ${i}.${j} </td>                                       
                                         <% j += 1 %>
                                     %endif
-                                    %if first and section[1]['tipo'] == 'seccion' and section[1]['nhijos'] > 0:
+                                    %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
                                         <% last = section[1] %>
                                     %endif
-                                    %if not first and section[1]['tipo'] == 'seccion' and section[1]['nhijos'] > 0:
-                                        <% pto_position = pto_position + last['nhijos'] + 1 %>
+                                    %if not first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
+                                        <% point_position = point_position + last['num_children'] + 1 %>
                                         <% last = section[1] %>
-                                        <td rowspan="2" class="pto" id="${pto_position}">Puntos</td>
+                                        <td rowspan="2" class="pto" id="${point_position}">Puntos</td>
                                         <% i += 1 %>
                                         <% j= 1 %>    
                                     %endif
-                                    %if first and section[1]['tipo'] == 'seccion' and section[1]['nhijos'] > 0:
+                                    %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
                                         <% first = False %>    
                                     %endif                                                                  
                                 %endfor
-                                <% pto_position = pto_position + last['nhijos'] + 1 %>
-                                <td rowspan="2" class="pto" id="${pto_position}">Puntos</td>
+                                <% point_position = point_position + last['num_children'] + 1 %>
+                                <td rowspan="2" class="pto" id="${point_position}">Puntos</td>
                             </tr>
-                             <!--Agrega las cabeceras terciarias-->
+                             <!--Tertiary Header-->
                             <tr>                            
                                 <% i = 1 %>
                                 <% j = 1 %>
                                 <% k = 1 %>
                                 <% first = True %>
                                 <% first2 = True %>
-                                %for section in materia.items():                                    
-                                    %if not first and section[1]['tipo'] == 'seccion':                                       
+                                %for section in content.items():                                    
+                                    %if not first and section[1]['type'] == 'section':                                       
                                         <% i += 1 %> 
                                         <% j = 0 %>
                                     %endif
-                                    %if not first2 and section[1]['tipo'] == 'subseccion':
+                                    %if not first2 and section[1]['type'] == 'subsection':
                                         <% j += 1 %>
                                         <% k = 1 %>
                                     %endif
-                                    %if section[1]['tipo'] == 'unidad':
+                                    %if section[1]['type'] == 'unit':
                                         <% first2 = False %> 
-                                        <td title="${section[1]['nombre']}">
+                                        <td title="${section[1]['name']}">
                                             ${i}.${j}.${k}
                                         </td>
                                         <% k += 1 %>
                                     %endif
-                                    %if first and section[1]['tipo'] == 'seccion' and section[1]['nhijos'] > 0:
+                                    %if first and section[1]['type'] == 'section' and section[1]['num_children'] > 0:
                                         <% first = False %>    
                                     %endif
                                 %endfor
                             </tr>
                         </thead>
                         <tbody>
-                            %for alumno in lista_tick.items():
+                            %for student in lista_tick.items():
                             <tr>
-                                <td hidden>${alumno[1]['email']}</td>
-                                <td>${alumno[1]['username']}</td>
-                                %if alumno[1]['data'] is not None:
-                                    %for unit in alumno[1]['data']:
+                                <td hidden>${student[1]['email']}</td>
+                                <td>${student[1]['username']}</td>
+                                %if student[1]['data'] is not None:
+                                    %for unit in student[1]['data']:
                                         <td>
                                             %if unit == True:
                                                 &#10004;
@@ -174,7 +174,7 @@
                                             %endif
                                         </td>                                   
                                     %endfor
-                                    <td>${alumno[1]['certificado']}</td>
+                                    <td>${student[1]['certificate']}</td>
                                 %endif
                             </tr>
                             %endfor                           
